@@ -4,7 +4,7 @@ from db_operator.load_db import *
 # 用户管理
 class User(object):
     def __init__(self):
-        self.db = Load('config\\db_con.json')
+        self.db = Load('./config/db_con.json')
         self.cur = self.db.get_DB_cur()
         self.operator = self.db.get_DB_operator()
         self.table_name = 'user'

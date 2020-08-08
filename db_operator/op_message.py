@@ -6,7 +6,7 @@ import re
 # MESSAGE管理
 class Message(object):
     def __init__(self):
-        self.db = Load('config\\db_con.json')
+        self.db = Load('./config/db_con.json')
         self.cur = self.db.get_DB_cur()
         self.operator = self.db.get_DB_operator()
         self.table_All = 'AllGroup'
