@@ -83,11 +83,36 @@ def GetGroup():
 @app.route('/GetField/', methods=['POST'])
 def GetField():
     SC = eval(request.form['SafetyCode'])
-    print(request.form)
     if SafeCode.check_identity(SC, SC['AccountID']):
         GroupName = request.form['GroupName']
         m = Message()
         res = m.get_field(GroupName)
+        m.close_link()
+        return res
+    else:
+        return {'status': False, 'message': '400'}
+
+
+@app.route('/GlobalSearch/', methods=['POST'])
+def GlobalSearch():
+    SC = eval(request.form['SafetyCode'])
+    if SafeCode.check_identity(SC, SC['AccountID']):
+        value = request.form['value']
+        m = Message()
+        res = m.god_search(value)
+        m.close_link()
+        return res
+    else:
+        return {'status': False, 'message': '400'}
+
+
+@app.route('/GetFieldYX/', methods=['POST'])
+def GFYX():
+    SC = eval(request.form['SafetyCode'])
+    if SafeCode.check_identity(SC, SC['AccountID']):
+        GroupName = request.form['GroupName']
+        m = Message()
+        res = m.get_field_YX(GroupName)
         m.close_link()
         return res
     else:

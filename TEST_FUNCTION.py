@@ -4,4 +4,4 @@ from User import Account
 
 # print(Account.sign_up('test2', '12346'))
 m = Message()
-print(m.get_field('JG'))
+print(m.god_search('王长征'))

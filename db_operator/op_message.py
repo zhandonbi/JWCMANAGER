@@ -21,9 +21,18 @@ class Message(object):
         else:
             return False
 
+    def get_field_YX(self, Name):
+        sql = 'SELECT FieldList, FieldList_CN FROM AllGroup WHERE Name = "{}"'.format(Name)
+        self.cur.execute(sql)
+        res = self.cur.fetchall()
+        Field_dir = {}
+        result = {'status': True, 'Field': Field_dir}
+        Field_dir['EN'] = res[0][0]
+        Field_dir['CN'] = res[0][1]
+        return result
+
     # 获取指定信息组
     def get_field(self, Name):
-        sql = ''
         sql = 'SELECT FieldList, FieldList_CN FROM AllGroup WHERE Name = "{}"'.format(Name)
         self.cur.execute(sql)
         res = self.cur.fetchall()
@@ -95,12 +104,13 @@ class Message(object):
         try:
             self.cur.execute(sql)
             res = self.cur.fetchall()
+            print(res)
             lable = self.get_field(table)['Field']
             line_all = {}
             result = {'status': True, 'MessageNum': len(res), 'lines': line_all}
             for i in range(0, len(res)):
                 nowLine = {}
-                for j, key in zip(range(1, len(res[i])), lable.values()):
+                for j, key in zip(range(0, len(res[i])), lable.values()):
                     value = str(res[i][j])
                     if value.find(' ') != -1:
                         value = value.split(' ')
@@ -109,6 +119,39 @@ class Message(object):
             return result
         except:
             return {'status': False, 'message': '查询表或者约束关键字不存在'}
+
+    def god_search(self, value):
+        if value == '' or value is None:
+            return {'status': False, 'message': '确实搜索值'}
+        tables = self.get_all_group()['Group']
+
+        numbers = 0
+        simple = {}
+        all_res = {}
+        search_res = {'关键词': value, 'listName': '关键词;搜索数目;Group', 'Group': simple}
+        result = {'status': True, 'result': search_res, 'allResult': all_res}
+        for key in tables.keys():
+            files = self.get_field(key)['Field']
+            files_CN = list(files.values())
+            files = list(files.keys())
+            for nowFile in range(0, len(files)):
+                files[nowFile] = 'IFNULL(`{}`,\'\')'.format(files[nowFile])
+            files = tuple(files)
+            files = str(files).replace('\"', '')
+            sql = 'SELECT * FROM {} WHERE Concat{} LIKE "%{}%"'.format(key, files, value)
+            self.cur.execute(sql)
+            res = self.cur.fetchall()
+            now = {}
+            now_all = []
+            for now_line in res:
+                now_all.append(list(now_line))
+                now[str(now_line[0])] = now_line[1]
+            numbers += len(res)
+            all_res[tables[key] + '<{}>'.format(len(res))] = now_all
+            simple[tables[key] + '<{}>'.format(len(res))] = now
+        search_res['搜索数目'] = numbers
+
+        return result
 
     def close_link(self):
         self.db.close()

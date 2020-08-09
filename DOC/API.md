@@ -44,7 +44,7 @@
    > > {
    > > 	'status': True, 
    > > 	'UserName': 'test', 		
-   > >     'identity': 1, 	
+   > >     	'identity': 1, 	
    > >     // SafetyCode为身份验证信息，用于每次请求检测身份
    > > 	'SafetyCode': {
    > > 		'GetTime': '20200807', 
