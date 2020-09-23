@@ -1,7 +1,5 @@
-# from db_operator.op_user import User
-from db_operator.op_message import Message
-from User import Account
+from db_operator.op_message import *
 
-# print(Account.sign_up('test2', '12346'))
-m = Message()
-print(m.god_search('王长征'))
+RM = ReadMessage()
+print(str([[1, 2, 3, 4, 5, 6], [4, 5, 6, 12, 10, 9]]))
+print()

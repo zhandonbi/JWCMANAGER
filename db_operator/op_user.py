@@ -72,5 +72,15 @@ class User(object):
                 'message': '{} 不存在'.format(username)
             }
 
+    def get_acc_power(self, username):
+        sql = 'SELECT identity FROM {} WHERE user_name = "{}"'.format(self.table_name, username)
+        self.cur.execute(sql)
+        res = self.cur.fetchall()
+        print(res)
+        if len(res) == 0:
+            return None
+        else:
+            return res[0][0]
+
     def close_link(self):
         self.db.close()

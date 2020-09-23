@@ -19,3 +19,10 @@ def sign_up(username, password):
     res = u.sign_up(username, password)
     u.close_link()
     return res
+
+
+def check_identity(username):
+    u = User()
+    res = u.get_acc_power(username)
+    u.close_link()
+    return res

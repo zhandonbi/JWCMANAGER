@@ -1,10 +1,10 @@
+import traceback
+
 from db_operator.load_db import *
-from SafetyControl import SafeCode
-import re
+from SafetyControl.SafeCode import get_code
 
 
-# MESSAGE管理
-class Message(object):
+class __base(object):
     def __init__(self):
         self.db = Load('./config/db_con.json')
         self.cur = self.db.get_DB_cur()
@@ -21,7 +21,16 @@ class Message(object):
         else:
             return False
 
-    def get_field_YX(self, Name):
+    def close_link(self):
+        self.db.close()
+
+
+# 读信息
+class ReadMessage(__base):
+    def __init__(self):
+        super().__init__()
+
+    def get_field(self, Name):
         sql = 'SELECT FieldList, FieldList_CN FROM AllGroup WHERE Name = "{}"'.format(Name)
         self.cur.execute(sql)
         res = self.cur.fetchall()
@@ -32,7 +41,7 @@ class Message(object):
         return result
 
     # 获取指定信息组
-    def get_field(self, Name):
+    def __get_field(self, Name):
         sql = 'SELECT FieldList, FieldList_CN FROM AllGroup WHERE Name = "{}"'.format(Name)
         self.cur.execute(sql)
         res = self.cur.fetchall()
@@ -45,13 +54,13 @@ class Message(object):
         return result
 
     def get_all_group(self):
-        sql = 'SELECT Name, Name_CN, FieldList, FieldList_CN FROM AllGroup'
+        sql = 'SELECT Name, Name_CN FROM AllGroup'
         self.cur.execute(sql)
         res = self.cur.fetchall()
         Group = {}
         result = {'status': True, 'fieldNum': len(res), "Group": Group}
         for i in range(0, len(res)):
-            Group[res[i][0]] = res[i][1]
+            Group[res[i][1]] = res[i][0]
         return result
 
     # 获取所有或者含有指定字段的信息组组名
@@ -78,7 +87,6 @@ class Message(object):
         try:
             self.cur.execute(sql)
             res = self.cur.fetchall()
-            # 存在信息不全，格式错误，更改处
             result = {'status': True, 'MessageNum': len(res)}
             value = []
             for i in range(0, len(res)):
@@ -91,8 +99,8 @@ class Message(object):
                         value.append(str_key)
             result['result'] = value
             return result
-        except:
-            return {'status': False, 'message': '查询字段或信息组不存在'}
+        except Exception as e:
+            return {'status': False, 'message': str(e)}
 
     # 获取指定信息组下全部行或指定行信息
     def get_line(self, table, key='', value=''):
@@ -100,12 +108,11 @@ class Message(object):
         if key == '' or value == '':
             sql = 'SELECT * FROM {}'.format(table)
         elif key != '' and value != '':
-            sql = 'SELECT * FROM {} WHERE {} LIKE "%{}%"'.format(table, key, value)
+            sql = 'SELECT * FROM {} WHERE {} = "{}"'.format(table, key, value)
         try:
             self.cur.execute(sql)
             res = self.cur.fetchall()
-            print(res)
-            lable = self.get_field(table)['Field']
+            lable = self.__get_field(table)['Field']
             line_all = {}
             result = {'status': True, 'MessageNum': len(res), 'lines': line_all}
             for i in range(0, len(res)):
@@ -117,21 +124,21 @@ class Message(object):
                     nowLine[key] = value
                 line_all[str(i)] = nowLine
             return result
-        except:
-            return {'status': False, 'message': '查询表或者约束关键字不存在'}
+        except Exception as e:
+            return {'status': False, 'message': str(e)}
 
+    # 全局搜索
     def god_search(self, value):
         if value == '' or value is None:
             return {'status': False, 'message': '确实搜索值'}
         tables = self.get_all_group()['Group']
-
         numbers = 0
         simple = {}
         all_res = {}
         search_res = {'关键词': value, 'listName': '关键词;搜索数目;Group', 'Group': simple}
         result = {'status': True, 'result': search_res, 'allResult': all_res}
-        for key in tables.keys():
-            files = self.get_field(key)['Field']
+        for key_CN, key in tables.items():
+            files = self.__get_field(key)['Field']
             files_CN = list(files.values())
             files = list(files.keys())
             for nowFile in range(0, len(files)):
@@ -147,11 +154,138 @@ class Message(object):
                 now_all.append(list(now_line))
                 now[str(now_line[0])] = now_line[1]
             numbers += len(res)
-            all_res[tables[key] + '<{}>'.format(len(res))] = now_all
-            simple[tables[key] + '<{}>'.format(len(res))] = now
+            all_res[key_CN + '<{}>'.format(len(res))] = now_all
+            simple[key_CN + '<{}>'.format(len(res))] = now
         search_res['搜索数目'] = numbers
 
         return result
 
-    def close_link(self):
-        self.db.close()
+
+# 编辑
+class EditMessage(__base):
+    def __init__(self):
+        super().__init__()
+
+    def getGroupTable(self, groupName):
+        sql1 = 'SELECT Name FROM AllGroup WHERE Name_CN = "{}"'.format(groupName)
+        self.cur.execute(sql1)
+        res = self.cur.fetchall()
+        if len(res) != 0:
+            return res[0][0]
+        else:
+            return None
+
+    def insert_group(self, table, message):
+        """
+        向已存在信息组插入信息
+        """
+        try:
+            sql1 = 'SELECT FieldList, Name FROM AllGroup WHERE Name="{}"'.format(table)
+            self.cur.execute(sql1)
+            search = self.cur.fetchall()
+            fieldList = search[0][0].split(';')
+            if len(message) <= 0:
+                return {'status': False, 'message': '传入新条目为空'}
+            elif len(message[0]) != (len(fieldList) - 1):
+                return {'status': False, 'message': '项目数与传入字段数目不匹配'}
+            else:
+                tableName = search[0][1]
+                value = []
+                for m in message:
+                    value.append(str(tuple(m)))
+                fieldList = str(tuple(fieldList[1:])).replace('\'', '`')
+                sql2 = 'INSERT INTO `{}` {} VALUES {}'.format(tableName, fieldList, ','.join(value))
+                try:
+                    self.cur.execute(sql2)
+                    self.operator.commit()
+                    return {'status': True, 'message': '添加了{}条记录'.format(len(message))}
+                except Exception as e:
+                    return {'status': False, 'message': str(e)}
+        except Exception as e:
+            return {'status': False, 'message': '信息组不存在'}
+
+    def creat_group(self, groupName, listNameCN, messageGroup):
+        """
+        新建信息组，设计中将内部各类参数设计的较为抽象，避免了外部修改，对照信息存储于AllGroup表中
+        """
+        # 数据检测
+        if len(messageGroup[0]) > len(listNameCN):
+            return {'status': False, 'message': '提供对照字段名数目与导入数据不匹配'}
+        elif len(messageGroup) <= 0:
+            return {'status': False, 'message': '导入数据为空'}
+        tableName = get_code(str(messageGroup))['SafetyCode']
+        is_exits = self.getGroupTable(groupName)
+        if is_exits is not None:
+            return {'status': False, 'message': '此内容已存在'}
+        else:
+            fieldList = []
+            str_fl = ''
+            for i in range(0, len(listNameCN)):
+                fieldList.append('F{}'.format(i))
+                str_fl += '`F{}` VARCHAR(40), '.format(i)
+            # 表创建
+            sql1 = "INSERT INTO AllGroup(Name, Name_CN, ItemNum, FieldList, FieldList_CN) " \
+                   "VALUES (\'{}\',\'{}\',{},\'{}\',\'{}\')".format(tableName, groupName, 0,
+                                                                    'ID;' + ';'.join(fieldList),
+                                                                    '序号;' + ';'.join(listNameCN))
+            sql2 = 'CREATE TABLE IF NOT EXISTS `' \
+                   + tableName + \
+                   '` (`ID` INT UNSIGNED AUTO_INCREMENT, ' \
+                   + str_fl + \
+                   'PRIMARY KEY (`ID`)' \
+                   ')ENGINE=InnoDB DEFAULT CHARSET=utf8'
+            self.cur.execute(sql1)
+            self.cur.execute(sql2)
+            value = []
+            for now in messageGroup:
+                value.append(str(tuple(now)))
+            sql3 = 'INSERT INTO `{}` {} VALUES {}'.format(tableName, tuple(fieldList), ','.join(value))
+            sql3 = sql3.replace('\'', '`')
+            self.cur.execute(sql3)
+            self.operator.commit()
+            return {'status': True,
+                    'message': '成功创建信息组:{},并插入{}条信息'.format(groupName, len(messageGroup))}
+
+    def update_message(self, table, recordID, newMessage: dict):
+        if self.check_group_or_exits(table):
+            VALUES = ''
+            for key, value in newMessage.items():
+                VALUES += '{}="{}"'.format(key, value)
+            sql = 'UPDATE {} SET {} WHERE ID={}'.format(table, VALUES, recordID)
+            try:
+                self.cur.execute(sql)
+                self.operator.commit()
+                return {'status': True, 'message': '数据修改成功'}
+            except Exception as e:
+                return {'status': False, 'message': str(e)}
+        else:
+            return {'status': False, 'message': '查询信息组不存在'}
+
+    def del_group(self, table):
+        if self.check_group_or_exits(table):
+            sql1 = 'DELETE FROM {} WHERE Name = "{}"'.format('AllGroup', table)
+            sql2 = 'DROP TABLE {}'.format(table)
+            try:
+                self.cur.execute(sql1)
+                self.cur.execute(sql2)
+                self.operator.commit()
+                return {'status': True, 'message': '删除成功'}
+            except Exception as e:
+                return {'status': False, 'message': str(e)}
+
+        else:
+            return {'status': False, 'message': '信息组不存在'}
+
+    def del_records(self, table, recordID):
+        if self.check_group_or_exits(table):
+            sql = 'DELETE FROM {} WHERE ID = {}'.format(table, recordID)
+            try:
+                self.cur.execute(sql)
+                self.operator.commit()
+            except Exception as e:
+                return {'status': False, 'message': str(e)}
+        else:
+            return {'status': False, 'message': '信息组不存在'}
+
+    def __check(self):
+        pass

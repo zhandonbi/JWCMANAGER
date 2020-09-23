@@ -1,7 +1,9 @@
 from flask import Flask, request
 from User import Account
 from SafetyControl import SafeCode
-from db_operator.op_message import Message
+from db_operator.op_message import ReadMessage as Message
+from db_operator.op_message import EditMessage
+import json
 
 app = Flask(__name__)
 
@@ -11,9 +13,9 @@ def hello_world():
     return {"status": True}
 
 
-@app.route('/login/', methods=['GET', 'POST'])
+@app.route('/login/', methods=['POST'])
 def login():
-    username = request.form['UserName']
+    username = request.form['userName']
     password = request.form['password']
     print(request.form)
     res = Account.sign_in(username, password)
@@ -22,7 +24,7 @@ def login():
 
 @app.route('/register/', methods=['POST'])
 def register():
-    username = request.form['UserName']
+    username = request.form['userName']
     password = request.form['password']
     res = Account.sign_up(username, password)
     return res
@@ -33,11 +35,12 @@ def GetList():
     SC = eval(request.form['SafetyCode'])
     print(request.form)
     if SafeCode.check_identity(SC, SC['AccountID']):
-        field = request.form['FieldName']
-        table = request.form['GroupName']
+        field = request.form['fieldName']
+        table = request.form['tableName']
         key = request.form['key']
         value = request.form['value']
         res = {}
+        print(1)
         if (key != '' and value != '') or (key == '' and value == ''):
             m = Message()
             res = m.get_list(field, table, key, value)
@@ -53,7 +56,7 @@ def GetList():
 def GetLine():
     SC = eval(request.form['SafetyCode'])
     if SafeCode.check_identity(SC, SC['AccountID']):
-        table = request.form['GroupName']
+        table = request.form['tableName']
         key = request.form['key']
         value = request.form['value']
         res = {}
@@ -84,9 +87,9 @@ def GetGroup():
 def GetField():
     SC = eval(request.form['SafetyCode'])
     if SafeCode.check_identity(SC, SC['AccountID']):
-        GroupName = request.form['GroupName']
+        table = request.form['tableName']
         m = Message()
-        res = m.get_field(GroupName)
+        res = m.get_field(table)
         m.close_link()
         return res
     else:
@@ -106,19 +109,78 @@ def GlobalSearch():
         return {'status': False, 'message': '400'}
 
 
-@app.route('/GetFieldYX/', methods=['POST'])
-def GFYX():
+@app.route('/UploadNewGroup/', methods=['POST'])
+def UNG():
     SC = eval(request.form['SafetyCode'])
-    if SafeCode.check_identity(SC, SC['AccountID']):
-        GroupName = request.form['GroupName']
-        m = Message()
-        res = m.get_field_YX(GroupName)
+    if SafeCode.check_identity(SC, SC['AccountID']) and (Account.check_identity(SC['AccountID']) == 0):
+        GroupName = request.form['groupName']
+        listNameCN = request.form['listNameCN'].split(';')
+        messageGroup = json.loads(request.form['messageGroup'])
+        print(messageGroup)
+        m = EditMessage()
+        res = m.creat_group(GroupName, listNameCN, messageGroup)
         m.close_link()
         return res
     else:
-        return {'status': False, 'message': '400'}
+        return {'status': False, 'message': '账户认证出错或权限不足'}
+
+
+@app.route('/insert_record/', methods=['POST'])
+def IR():
+    SC = eval(request.form['SafetyCode'])
+    if SafeCode.check_identity(SC, SC['AccountID']) and (Account.check_identity(SC['AccountID']) == 0):
+        table = request.form['tableName']
+        newRecord = request.form['newRecord']
+        m = EditMessage()
+        res = m.insert_group(table, newRecord)
+        m.close_link()
+        return res
+    else:
+        return {'status': False, 'message': '账户认证出错或权限不足'}
+
+
+@app.route('/update_record/', methods=['POST'])
+def UM():
+    SC = eval(request.form['SafetyCode'])
+    if SafeCode.check_identity(SC, SC['AccountID']) and (Account.check_identity(SC['AccountID']) == 0):
+        table = request.form['tableName']
+        recordID = request.form['ID']
+        newRecord = request.form['newRecord']
+        m = EditMessage()
+        res = m.update_message(table, recordID, newRecord)
+        m.close_link()
+        return res
+    else:
+        return {'status': False, 'message': '账户认证出错或权限不足'}
+
+
+@app.route('/del_group/', methods=['POST'])
+def DG():
+    SC = eval(request.form['SafetyCode'])
+    if SafeCode.check_identity(SC, SC['AccountID']) and (Account.check_identity(SC['AccountID']) == 0):
+        table = request.form['tableName']
+        m = EditMessage()
+        res = m.del_group(table)
+        m.close_link()
+        return res
+    else:
+        return {'status': False, 'message': '账户认证出错或权限不足'}
+
+
+@app.route('/del_record/', methods=['POST'])
+def DR():
+    SC = eval(request.form['SafetyCode'])
+    if SafeCode.check_identity(SC, SC['AccountID']) and (Account.check_identity(SC['AccountID']) == 0):
+        table = request.form['tableName']
+        recordID = request.form['ID']
+        m = EditMessage()
+        res = m.del_records(table, recordID)
+        m.close_link()
+        return res
+    else:
+        return {'status': False, 'message': '账户认证出错或权限不足'}
 
 
 if __name__ == '__main__':
     app.config['JSON_AS_ASCII'] = False
-    app.run(port=5000)
+    app.run(port=5000, debug=True)
