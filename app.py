@@ -163,7 +163,6 @@ def UE():
     if SafeCode.check_identity(SC, SC['AccountID']) and (Account.check_identity(SC['AccountID']) == 0):
         GroupName = request.form['groupName']
         file = request.files.get('excelFile')
-        print(file)
         res = excelInout.read(GroupName, file.read(), 'Sheet1')
         return res
     else:
