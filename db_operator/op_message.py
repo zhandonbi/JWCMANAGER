@@ -1,7 +1,5 @@
-import traceback
-
-from db_operator.load_db import *
 from SafetyControl.SafeCode import get_code
+from db_operator.load_db import *
 
 
 class __base(object):
@@ -238,13 +236,16 @@ class EditMessage(__base):
             self.cur.execute(sql2)
             value = []
             for now in messageGroup:
-                value.append(str(tuple(now)))
-            sql3 = 'INSERT INTO `{}` {} VALUES {}'.format(tableName, tuple(fieldList), ','.join(value))
-            sql3 = sql3.replace('\'', '`')
-            self.cur.execute(sql3)
-            self.operator.commit()
-            return {'status': True,
-                    'message': '成功创建信息组:{},并插入{}条信息'.format(groupName, len(messageGroup))}
+                value.append(str(tuple([str(i) for i in now])))
+            fieldList = str(tuple(fieldList)).replace('\'', '`')
+            sql3 = 'INSERT INTO `{}` {} VALUES {}'.format(tableName, fieldList, ','.join(value))
+            try:
+                self.cur.execute(sql3)
+                self.operator.commit()
+                return {'status': True,
+                        'message': '成功创建信息组:{},并插入{}条信息'.format(groupName, len(messageGroup))}
+            except Exception as e:
+                return {'status': False, 'message': str(e)}
 
     def update_message(self, table, recordID, newMessage: dict):
         if self.check_group_or_exits(table):
@@ -282,6 +283,7 @@ class EditMessage(__base):
             try:
                 self.cur.execute(sql)
                 self.operator.commit()
+                return {'status': True, 'message': '删除记录{}成功'.format(recordID)}
             except Exception as e:
                 return {'status': False, 'message': str(e)}
         else:

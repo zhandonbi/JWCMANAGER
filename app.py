@@ -1,9 +1,12 @@
-from flask import Flask, request
-from User import Account
-from SafetyControl import SafeCode
-from db_operator.op_message import ReadMessage as Message
-from db_operator.op_message import EditMessage
 import json
+
+from flask import Flask, request
+
+from InoutManager import excelInout
+from SafetyControl import SafeCode
+from User import Account
+from db_operator.op_message import EditMessage
+from db_operator.op_message import ReadMessage as Message
 
 app = Flask(__name__)
 
@@ -154,6 +157,18 @@ def UM():
         return {'status': False, 'message': '账户认证出错或权限不足'}
 
 
+@app.route('/upload_excel/', methods=['POST'])
+def UE():
+    SC = eval(request.form['SafetyCode'])
+    if SafeCode.check_identity(SC, SC['AccountID']) and (Account.check_identity(SC['AccountID']) == 0):
+        GroupName = request.form['groupName']
+        file = request.files.get('excelFile')
+        res = excelInout.read(GroupName, file.read(), 'Sheet1')
+        return res
+    else:
+        return {'status': False, 'message': '账户认证出错或权限不足'}
+
+
 @app.route('/del_group/', methods=['POST'])
 def DG():
     SC = eval(request.form['SafetyCode'])
@@ -172,7 +187,7 @@ def DR():
     SC = eval(request.form['SafetyCode'])
     if SafeCode.check_identity(SC, SC['AccountID']) and (Account.check_identity(SC['AccountID']) == 0):
         table = request.form['tableName']
-        recordID = request.form['ID']
+        recordID = int(request.form['ID'])
         m = EditMessage()
         res = m.del_records(table, recordID)
         m.close_link()

@@ -1,5 +1,4 @@
-from db_operator.op_message import *
+from InoutManager.excelInout import *
 
-RM = ReadMessage()
-print(str([[1, 2, 3, 4, 5, 6], [4, 5, 6, 12, 10, 9]]))
-print()
+file = open('C:\\Users\\zhandonbi\\Documents\\Tencent Files\\1430789575\\FileRecv\\18级选课方案-职场英语.xlsx', 'rb')
+print(read(file, 'Sheet1'))

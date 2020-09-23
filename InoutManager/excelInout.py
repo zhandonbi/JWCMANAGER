@@ -1,13 +1,15 @@
+import numpy as np
 import pandas
+
 from db_operator.op_message import EditMessage
-import os
-
-file = open('C:\\Users\\zhandonbi\\Documents\\Tencent Files\\1430789575\\FileRecv\\18级选课方案-职场英语.xlsx', 'rb')
-a = pandas.read_excel(file)
-print(a.values.tolist())
-b = 1
 
 
-def read(file, sheetName):
+def read(groupName, file, sheetName):
+    em = EditMessage()
     file = pandas.read_excel(file, sheet_name=sheetName)
-    return file.values.tolist()[1:]
+    file = file.astype(object).where(pandas.notnull(file), None)
+    list_name = file.columns.values
+    file_list = np.array(file).tolist()
+    res = em.creat_group(groupName, list_name, file_list)
+    em.close_link()
+    return res
