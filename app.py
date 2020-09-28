@@ -43,7 +43,6 @@ def GetList():
         key = request.form['key']
         value = request.form['value']
         res = {}
-        print(1)
         if (key != '' and value != '') or (key == '' and value == ''):
             m = Message()
             res = m.get_list(field, table, key, value)

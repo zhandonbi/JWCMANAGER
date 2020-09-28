@@ -117,8 +117,9 @@ class ReadMessage(__base):
                 nowLine = {}
                 for j, key in zip(range(0, len(res[i])), lable.values()):
                     value = str(res[i][j])
-                    if value.find(' ') != -1:
-                        value = value.split(' ')
+                    if res[i][j] is None:
+                        value = ''
+                    value = value.replace(' ', ';')
                     nowLine[key] = value
                 line_all[str(i)] = nowLine
             return result
