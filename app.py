@@ -1,6 +1,6 @@
 import json
 
-from flask import Flask, request
+from flask import Flask, request, send_from_directory
 
 from InoutManager import excelInout
 from SafetyControl import SafeCode
@@ -193,6 +193,11 @@ def DR():
         return res
     else:
         return {'status': False, 'message': '账户认证出错或权限不足'}
+
+
+@app.route('/get_model_excel/', methods=['GET'])
+def GME():
+    return send_from_directory('Files', 'Model.xlsx', as_attachment=True)
 
 
 if __name__ == '__main__':
