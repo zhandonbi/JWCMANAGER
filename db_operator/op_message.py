@@ -129,7 +129,7 @@ class ReadMessage(__base):
     # 全局搜索
     def god_search(self, value):
         if value == '' or value is None:
-            return {'status': False, 'message': '确实搜索值'}
+            return {'status': False, 'message': '缺失搜索值'}
         tables = self.get_all_group()['Group']
         numbers = 0
         simple = {}
@@ -150,7 +150,7 @@ class ReadMessage(__base):
             now = {}
             now_all = []
             for now_line in res:
-                now_all.append(list(now_line))
+                now_all.append([str(i) for i in list(now_line)])
                 now[str(now_line[0])] = now_line[1]
             numbers += len(res)
             all_res[key_CN + '<{}>'.format(len(res))] = now_all
