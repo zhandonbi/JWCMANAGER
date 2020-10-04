@@ -162,6 +162,8 @@ def UE():
     if SafeCode.check_identity(SC, SC['AccountID']) and (Account.check_identity(SC['AccountID']) == 0):
         GroupName = request.form['groupName']
         file = request.files.get('excelFile')
+        if file is None:
+            return {'status': False, 'message': '未接受到文件,请检查文件是否被占用等情况'}
         res = excelInout.read(GroupName, file.read(), 'Sheet1')
         return res
     else:
