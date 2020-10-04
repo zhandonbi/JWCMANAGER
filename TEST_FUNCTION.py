@@ -1,3 +1,3 @@
-strA = "{'A':'A','B':123}"
+from db_operator.op_message import ReadMessage as rm
 
-print(type(eval(strA)))
+print(rm().get_list('Section', 'JXCGJ'))

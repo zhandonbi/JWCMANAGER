@@ -79,12 +79,14 @@ class ReadMessage(__base):
     def get_list(self, field, table, key='', value=''):
         sql = ''
         if key == '' or value == '':
-            sql = 'SELECT {} FROM {}'.format(field, table)
+            # GROUP BY语句避免了使用count统计函数造成的安全问题
+            sql = 'SELECT {}, COUNT(*) FROM {} GROUP BY {}'.format(field, table, field)
         elif key != '' and value != '':
-            sql = 'SELECT {} FROM {} WHERE {} = "{}"'.format(field, table, key, value)
+            sql = 'SELECT {}, COUNT(*) FROM {} WHERE {} = "{}" GROUP BY {}'.format(field, table, key, value, field)
         try:
             self.cur.execute(sql)
             res = self.cur.fetchall()
+            print(res)
             result = {'status': True, 'MessageNum': len(res)}
             value = []
             for i in range(0, len(res)):
@@ -92,9 +94,9 @@ class ReadMessage(__base):
                 if (str_key not in value) and (str_key.split(' ') not in value) and (
                         str_key is not None and str_key is not 'None'):
                     if str_key.find(' ') != -1:
-                        value.append(str_key.split(' '))
+                        value.append(str_key.replace(' ', ';') + '${}'.format(res[i][1]))
                     else:
-                        value.append(str_key)
+                        value.append(str_key + '${}'.format(res[i][1]))
             result['result'] = value
             return result
         except Exception as e:
